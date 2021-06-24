@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, Text, Button } from "react-native";
+import { StyleSheet, View, Text, Button, Vibration } from "react-native";
 
 export default class App extends React.Component {
   constructor() {
@@ -9,14 +9,20 @@ export default class App extends React.Component {
       breakTime: 5,
       longBreakTime: 10,
       status: 25,
-      minute: 25,
+      minute: 0,
       seconds: 2,
-      carry: null,
+      carry: 0,
+      started: false,
+      stopped: true,
     };
   }
   timer;
 
   handleStart = () => {
+    this.setState({
+      started: true,
+      stopped: false,
+    });
     let sec = this.state.seconds;
     let car = this.state.carry;
     let min = this.state.minute;
@@ -27,11 +33,15 @@ export default class App extends React.Component {
       if (sec <= -1) {
         sec = 59;
         min = this.state.minute - 1;
+
         this.setState({
           minute: min,
         });
       }
-
+      if ((min <= 0) & (sec <= 0)) {
+        clearInterval(this.timer);
+        this.vibrateAlert();
+      }
       if (sec < 10) {
         car = 0;
       } else {
@@ -45,20 +55,32 @@ export default class App extends React.Component {
     }, 1000);
   };
   handleStop = () => {
+    if ((this.state.seconds <= 0) & (this.state.minute <= 0)) {
+      this.setState({
+        minute: this.state.status,
+        seconds: 0,
+        carry: 0,
+      });
+    }
+    this.setState({
+      started: false,
+      stopped: true,
+    });
     clearInterval(this.timer);
+    Vibration.cancel();
   };
 
   handleReset = () => {
-    clearInterval(this.timer);
+    this.handleStop();
     this.setState({
-      minute: this.state.status, // this has to change after implementation of mode change
+      minute: this.state.status,
       seconds: 0,
       carry: 0,
     });
   };
 
   timeSeter = (mode) => {
-    clearInterval(this.timer);
+    this.handleStop();
     this.setState({
       minute: mode,
       status: mode,
@@ -75,6 +97,10 @@ export default class App extends React.Component {
   };
   setLongBreakTime = () => {
     this.timeSeter(this.state.longBreakTime);
+  };
+
+  vibrateAlert = () => {
+    Vibration.vibrate([2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000]);
   };
 
   render() {
@@ -95,8 +121,16 @@ export default class App extends React.Component {
           </Text>
         </View>
         <View style={styles.btns}>
-          <Button onPress={this.handleStart} title="start"></Button>
-          <Button onPress={this.handleStop} title="stop"></Button>
+          <Button
+            disabled={this.state.started}
+            onPress={this.handleStart}
+            title="start"
+          ></Button>
+          <Button
+            disabled={this.state.stopped}
+            onPress={this.handleStop}
+            title="stop"
+          ></Button>
           <Button onPress={this.handleReset} title="reset"></Button>
         </View>
       </View>
